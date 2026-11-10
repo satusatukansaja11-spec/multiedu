@@ -1,0 +1,8 @@
+node_modules
+dist
+package-lock.json
+apps/server/data
+PRD.md
+desain.md
+rules.md
+README.md
