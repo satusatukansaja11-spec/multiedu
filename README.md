@@ -1,74 +1,86 @@
 # Multiedu — Office Adventure
 
-Game edukasi web 3D bergaya low-poly untuk mempelajari **Microsoft Word, Microsoft Excel, dan Microsoft PowerPoint**. Dibuat dengan JavaScript, React, React Three Fiber/Three.js, dan Express. Aset dunia dan avatar dibuat secara prosedural, tanpa mengambil aset Roblox atau Microsoft.
+Game edukasi JavaScript dengan React, Three.js/React Three Fiber, dan Express. Materi: **Microsoft Word, Excel, dan PowerPoint**. Dunia dan karakter dibuat secara prosedural; tidak memakai aset Roblox atau situs referensi.
 
-## Fitur yang dapat dimainkan
+## Menjalankan
 
-- Pulau 3D dengan gedung Word, Excel, dan PowerPoint, avatar balok, serta kamera yang bisa diputar.
-- Gerakan WASD/tombol panah dan kontrol sentuh.
-- Pilihan materi, nama samaran, dan ringkasan pelajaran sebelum bermain.
-- 18 soal berbahasa Indonesia, enam soal per materi.
-- Latihan Jatuh Bangun sederhana: pilih bidang A–D dengan avatar atau tombol jawaban, lalu kunci jawaban. Avatar melompat saat benar dan turun sesaat saat salah; belum ada arena bertingkat/eliminasi.
-- Penilaian di server: benar mendapat 100 XP, salah 0 XP, tanpa batas waktu. Jawaban duplikat tidak menggandakan skor.
-- Penjelasan setelah setiap soal, ringkasan hasil, serta peringkat hasil latihan.
-- Pratinjau ruang guru: bank soal hanya baca dan rata-rata ketepatan per materi.
-- Suara umpan balik opsional, layar penuh, dialog keyboard, dan layout responsif.
-
-## Jalankan untuk pengembangan
-
-Prasyarat: Node.js 24 LTS dan npm. PostgreSQL **belum diperlukan** pada versi ini.
+Prasyarat: Node.js 24 LTS, npm, browser WebGL.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Frontend berjalan di port **5173** dan API di port **3001**. Vite meneruskan `/api` ke backend. Gunakan browser dengan WebGL untuk arena 3D. Tombol jawaban tetap disediakan sebagai alternatif gerak avatar.
-
-Untuk instalasi pada lingkungan yang membatasi cache direktori pengguna:
-
-```bash
-npm ci --cache /workspace/.npm-cache
-```
-
-## Build dan jalankan hasil build
+Frontend: port **5173**, backend: **3001**. Vite meneruskan `/api` ke backend. Jika cache pengguna tidak dapat ditulis, gunakan `npm ci --cache /workspace/.npm-cache`.
 
 ```bash
 npm run build
 npm start
 ```
 
-Express menyajikan aplikasi hasil build dan API pada port **3001**. Variabel `PORT` dapat mengubah port server produksi. Pada development, bila port backend diubah, sesuaikan proxy pada `apps/web/vite.config.js`.
+Hasil build dan API disajikan pada port 3001. `PORT` dapat mengubah port backend produksi. Untuk development, perubahan port perlu diselaraskan pada proxy Vite. `.env.example` hanya contoh; `.env` tidak dimuat otomatis.
 
-`.env.example` mendokumentasikan konfigurasi. Server membaca variabel proses; berkas `.env` tidak dimuat otomatis. Jangan menyimpan rahasia dalam variabel frontend `VITE_`.
+## Alur yang tersedia
 
-## Cara bermain
+### Eksplorasi
 
-1. Pilih Word, Excel, atau PowerPoint di kartu materi.
-2. Baca “Bekal sebelum berangkat”.
-3. Tekan **Mulai petualangan**, isi nama samaran, lalu **Masuk arena**.
-4. Pilih A–D melalui tombol atau berdiri di bidang warna arena. Tekan **Kunci jawaban**.
-5. Baca pembahasan dan lanjutkan sampai enam soal selesai.
-6. Buka **Papan peringkat** atau **Ruang guru** untuk melihat hasil.
+**Mainkan Sekarang → Jelajah Dunia → pilih dunia → buat karakter → masuk dunia.**
 
-Memutar kamera tidak mengubah sumbu kontrol dunia. Suara jawaban nonaktif secara default. Keluar sebelum enam soal selesai tidak mencatat hasil.
+Sebelas dunia tersedia sebagai **area prosedural tunggal per tema**: Kota Ilmu, Samudra, Angkasa, Rimba, Nusantara, Mancanegara, Tubuh Manusia, Zaman Purba, Lorong Waktu, Iklim Ekstrem, dan Kota Masa Depan. Setiap tema mempunyai objek berbeda seperti karang/ikan, roket, hutan, perahu, piramida, sel, dinosaurus, candi, es, atau robot/kendaraan melayang. Belum ada perjalanan terpisah antar-subwilayah seperti Bulan → Mars dalam satu dunia.
 
-## Penyimpanan dan batasan
+- Gerak: WASD/panah, Shift berlari, Spasi melompat atau berenang naik di Samudra. Seret untuk kamera; E berinteraksi dekat NPC/gedung. Tombol sentuh dan tombol kunjungan tersedia.
+- Tiga gedung materi, NPC bertema dunia, ringkasan materi, dan kuis. Kuis NPC dan gedung dicatat berbeda.
+- Lima Buku Ilmu unik per dunia, masing-masing +5 koin, sekali per profil. Tidak muncul ulang harian.
+- Kuis gedung lulus dengan minimal 50% benar. Kelulusan disimpan per dunia/materi. Jawaban benar +100 XP; hasil selesai memberi +2 koin per jawaban benar. Level = 1 + floor(XP / 500).
+- Membaca materi memerlukan konfirmasi kesiapan sebelum kuis. Ini catatan partisipasi, bukan bukti pemahaman otomatis.
 
-Ini adalah **rilis latihan individual lokal**, bukan sistem kelas produksi. Semua hasil pada server yang sama dapat dilihat oleh siapa pun yang membuka aplikasi; gunakan nama samaran dan jangan masukkan data pribadi murid.
+### Lima mode tambahan
 
-- Hasil selesai disimpan di `apps/server/data/results.json` (diabaikan Git), maksimal 500 hasil; API menampilkan 100 hasil terbaru.
-- Sesi aktif berada di memori, berlaku satu jam, dan hilang ketika backend restart. Hasil selesai tetap tersimpan di disk.
-- Jalankan satu proses backend untuk penyimpanan JSON ini. Penyimpanan bukan PostgreSQL dan tidak mendukung beberapa instance server.
-- Nama pilihan tersimpan di localStorage browser. Halaman yang dimuat ulang kembali ke lobi; sesi tidak dipulihkan otomatis.
-- Ruang guru belum memiliki autentikasi, editor soal, impor AI, atau pengelolaan kelas.
-- Multiplayer/Socket.IO, mulai oleh guru, terjun dengan parasut, Lari Kilat, Detektif, dan proyektor langsung masih merupakan rencana PRD.
-- Level akun, penyimpanan XP lintas akun, rapor, dan kapasitas 70 pemain belum diimplementasikan.
-- Rata-rata pada ruang guru dihitung dari ketepatan latihan selesai per materi, bukan penguasaan TP yang tervalidasi.
+| Mode | Perilaku |
+| --- | --- |
+| Lari Kilat | Empat lajur, gerbang mendekat selama 12 detik, pilihan terakhir di server terkunci pada deadline. Tema Kota/Pantai/Angkasa. Spasi lompat, Ctrl runduk; tersedia tombol sentuh. Koin otomatis pada lajur target atau tombol aksesibel, maksimal +1 per soal. Rintangan pada lajur berikutnya saat tersisa 6 detik; tabrakan -25 skor (minimum 0). Angsa visual mendekat setelah tabrakan; tanpa eliminasi. |
+| Jatuh Bangun | Empat lantai nyata, timer 15 detik per soal. Pilih bidang melalui WASD/panah atau tombol A–D. Benar naik satu lantai; salah/tidak memilih turun satu lantai. Minimum lantai 1, maksimum 4, tanpa eliminasi. |
+| Detektif Kota Ilmu | Kasus dokumen Word dengan empat bacaan petunjuk, kemudian dua pertanyaan untuk mengidentifikasi dokumen dan mencari informasi. |
+| Pasar Nusantara | Tiga transaksi: total belanja, kembalian, diskon; dikaitkan dengan rumus Excel. |
+| Jembatan Juara | Enam soal membangun bagian jembatan dan memindahkan avatar menuju finis. Jawaban salah tidak membuka bagian; hasil menunjukkan jumlah bagian berhasil. |
 
-Sebelum penggunaan sekolah/Internet publik: implementasikan autentikasi dan otorisasi, PostgreSQL, perlindungan data murid, pembatasan laju, serta uji keamanan dan beban. Stack database dan multiplayer yang ditetapkan dalam `rules.md` tetap menjadi target pengembangan berikutnya; JSON merupakan penyimpanan sementara untuk rilis latihan lokal ini.
+Bank awal berisi 18 soal Office, masing-masing 6 per materi. Campuran menggunakan 18 soal; Jembatan dibatasi 6. Detektif dan Pasar menggunakan kasus khusus. Soal, penilaian, hadiah, dan pilihan sebelum deadline berada di server. Gerak/collision grafis disimulasikan klien; ini belum sistem anti-cheat produksi.
 
-## Pemeriksaan
+Pada mode bertimer, pertanyaan berikutnya menunggu tombol Lanjut sehingga pembahasan dapat dibaca. Jeda individual menghentikan timer server. Pada kelas, jeda pribadi tidak tersedia. Sesi berakhir setelah soal habis. Aktivitas terakhir dapat dibuka melalui **Lanjutkan aktivitas tersimpan** pada pilihan mode; deadline tetap berlaku ketika halaman/browser ditutup. Token profil dan penunjuk aktivitas tersimpan di browser.
+
+### Progres dan kostum
+
+- Profil, penguasaan materi, riwayat, lencana, dan misi dapat dibuka lewat toolbar.
+- Misi memiliki target, status, hadiah, dan klaim idempoten. Combo salah kembali nol; combo terbaik dipertahankan. Misi harian memakai hari UTC.
+- Kostum: atasan, bawahan, rambut, warna rambut, topi, dan wajah. Warna kaos dasar gratis. Item berharga dan bersyarat level diperiksa server; pembelian meminta konfirmasi.
+- Peta mini, kualitas grafis tinggi/ringan, tema light/dark, volume/mute, dan pembacaan soal opsional. Dukungan suara pembaca tergantung browser.
+- Hapus progres hanya mereset profil pemain aktif setelah konfirmasi; tidak menghapus akun guru atau data peserta lain.
+- Data lama dari rilis localStorage diarsipkan pada `office-legacy-profile` ketika profil server dibuat. Nama/warna digunakan kembali; saldo/XP lama tidak otomatis dikonversi ke ekonomi baru.
+
+### Guru, kelas, dan proyektor
+
+1. Buka **Ruang Guru**, daftar akun lokal server, kemudian masuk. Username 3–40 huruf/angka/underscore/dash; password minimal 8 karakter. Password di-hash dengan scrypt.
+2. Buat paket melalui editor JSON, atau salin prompt ke ChatGPT/Gemini/Claude lalu tempel hasil. Guru harus meninjau kunci. Validasi menerima 1–30 soal. Paket dapat disalin ke editor dan diganti dengan konfirmasi.
+3. Buka lobi dengan nama kelas, materi, mode, dan paket opsional. Bagikan kode enam angka.
+4. Peserta membuka **Gabung kelas**, memasukkan kode, lalu memilih **Saya siap**.
+5. Guru memulai setelah semua peserta siap; ada hitung mundur tiga detik. Peserta yang bergabung terlambat dapat mulai saat sesi masih berjalan.
+6. Proyektor dibuka di tab lain pada browser guru yang sama. Peringkat dan laporan diperbarui setiap 1–1,5 detik melalui HTTP polling.
+7. Laporan menampilkan ketepatan per materi, status selesai, saran latihan dengan acuan 75%, dan draf catatan yang harus ditinjau guru. Ini belum pemetaan TP kurikulum atau rapor resmi.
+
+Kelas mendukung sesi soal bersama dan peringkat lintas perangkat. **Gerak avatar antarperangkat tidak disinkronkan.** Ini bukan dunia multiplayer fisika bersama. Pembaruan menggunakan polling, bukan Socket.IO. Proyektor memerlukan sesi guru aktif di browser yang sama; jangan membagikan token guru.
+
+## Data dan batas operasional
+
+- Penyimpanan lokal server: `apps/server/data/adventure.json`. Berisi profil, token, akun guru (hash password), paket, kelas, dan sesi. File diabaikan Git.
+- Penulisan diserialkan dan memakai temporary file + rename. Kegagalan operasi membatalkan perubahan memori transaksi.
+- Jalankan **satu proses backend** dengan direktori data persisten. Belum menggunakan PostgreSQL atau mendukung beberapa instance backend.
+- Profil murid memakai token anonim di browser (berlaku satu tahun); sesi guru berlaku satu hari. Hilangnya token browser berarti profil anonim tidak dapat dipulihkan lewat login. Jangan menghapus storage browser bila ingin mempertahankan akses.
+- Gunakan nama samaran. Peserta satu kelas dapat melihat nama tampilan dan skor satu sama lain. Akun guru dibatasi pada paket/kelas miliknya.
+- Rute `/api/sessions`, `/api/results` lama dipertahankan untuk kompatibilitas latihan sebelumnya. Hasil legacy bersifat lokal dan terbuka; antarmuka baru memakai `/api/adventure` dengan akses berdasarkan token.
+- Belum ada reset password, email verifikasi, pembatasan laju produksi, ekspor rapor, pengujian kapasitas puluhan pemain, atau administrasi sekolah.
+- Untuk publikasi Internet perlu HTTPS, backup, PostgreSQL/migrasi, rate limit, kebijakan data murid, dan uji keamanan/beban. Konfigurasi ini untuk pengembangan dan uji coba terkontrol.
+
+## Pengujian
 
 ```bash
 npm test
@@ -78,31 +90,16 @@ npm run build
 npm run test:e2e
 ```
 
-Vitest menguji penilaian, jawaban duplikat, penolakan soal yang tidak aktif, serta penyelesaian semua materi. Playwright menguji alur Word sampai hasil, bank soal, dan layout ponsel. E2E menulis hasil sintetis bernama “Uji Penjelajah” ke penyimpanan lokal; gunakan server pengujian terpisah dari data nyata.
+Playwright memakai `/usr/bin/chromium` pada cloud ini. Atur `CHROMIUM_PATH` pada mesin lain. Tes E2E menulis akun/pemain/paket/kelas sintetis pada server pengujian; jangan menjalankannya pada data sekolah. Tes waktu menggunakan deadline server sungguhan, sehingga lebih lama daripada tes UI biasa.
 
-Konfigurasi Playwright memakai Chromium sistem `/usr/bin/chromium` pada lingkungan cloud ini. Untuk mesin lain tentukan `CHROMIUM_PATH` ke executable Chromium yang tersedia, atau ubah `launchOptions.executablePath` agar memakai browser Playwright yang telah diinstal.
+## Struktur dan dokumentasi
 
-## Struktur
+- `apps/web/src/OfficeAdventure.jsx`: alur masuk, eksplorasi, pengaturan, dan progres.
+- `apps/web/src/World.jsx`, `WorldScenery.jsx`: avatar dan sebelas tema dunia.
+- `apps/web/src/GameMode.jsx`: arena serta alur lima mode tambahan.
+- `apps/web/src/TeacherRoom.jsx`: akun guru, paket, kelas, dan proyektor.
+- `apps/server/src/adventure-api.js`: akses, ekonomi, progres, kelas, dan penilaian persisten.
+- [permainan.md](./permainan.md): spesifikasi lengkap dan keputusan implementasi.
+- [PRD.md](./PRD.md), [desain.md](./desain.md), [rules.md](./rules.md): kebutuhan produk, visual, dan aturan kode.
 
-```text
-apps/
-  web/src/
-    main.jsx                 # Antarmuka, latihan, dan dashboard
-    World.jsx                # Dunia, avatar, dan kontrol 3D
-    styles.css               # Token dan layout responsif
-  server/src/
-    index.js                 # API dan penyimpanan hasil
-    game-service.js          # Sesi dan penilaian
-    questions.js             # Materi dan soal; kunci tetap di server
-    game-service.test.js
-  server/data/               # Hasil lokal, tidak masuk Git
-tests/game.spec.js           # Pengujian browser
-```
-
-## Dokumentasi produk
-
-- [PRD.md](./PRD.md): visi lengkap, fitur, dan alur pengguna.
-- [desain.md](./desain.md): bahasa visual dan komponen.
-- [rules.md](./rules.md): teknologi, penamaan, dan aturan pengembangan.
-
-Dokumen PRD mencakup cakupan yang lebih luas dari rilis ini. Daftar fitur yang benar-benar tersedia dijelaskan di README ini. Microsoft Word, Excel, PowerPoint, dan Roblox adalah merek milik pemiliknya masing-masing; proyek ini bukan layanan resmi atau afiliasi mereka.
+Microsoft dan Roblox merupakan merek pemiliknya masing-masing. Multiedu tidak berafiliasi dengan layanan tersebut.
