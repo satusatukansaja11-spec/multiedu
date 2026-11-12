@@ -19,8 +19,9 @@ import {
   Check,
   Coins,
 } from 'lucide-react';
+import { CITY_BUILDINGS, cityToMap } from './city-layout.js';
 import { World, BOOKS } from './World.jsx';
-import { adventureApi, WORLDS, MODES, LESSONS } from './adventure-api.js';
+import { adventureApi, WORLDS, MODES, LESSONS, OFFLINE_MODE } from './adventure-api.js';
 import { GameMode } from './GameMode.jsx';
 import { TeacherRoom, ClassLobby, Projector } from './TeacherRoom.jsx';
 import { playSfx } from './sfx.js';
@@ -34,6 +35,7 @@ function read(key, fallback) {
   }
 }
 export function OfficeAdventure() {
+  const [cameraView, setCameraView] = useState('overview');
   const [resumeId, setResumeId] = useState(null);
   const [world, setWorld] = useState('city'),
     [topic, setTopic] = useState('word'),
@@ -48,7 +50,7 @@ export function OfficeAdventure() {
     [activitySource, setActivitySource] = useState('quiz');
   const [quality, setQuality] = useState(() => read('office-quality', 'high')),
     [autoRead, setAutoRead] = useState(() => read('office-auto-read', false)),
-    [serverReady, setServerReady] = useState(false);
+    [gameReady, setGameReady] = useState(false);
   useEffect(() => {
     let alive = true;
     const init = async () => {
@@ -59,18 +61,22 @@ export function OfficeAdventure() {
           localStorage.getItem('office-profile')
         )
           localStorage.setItem('office-legacy-profile', localStorage.getItem('office-profile'));
-        if (localStorage.getItem('office-player-token')) player = await adventureApi('/profile');
+        if (localStorage.getItem(OFFLINE_MODE ? 'office-offline-ready' : 'office-player-token'))
+          player = await adventureApi('/profile');
         else {
           const value = await adventureApi('/players', {
             name: read('office-profile', {}).name || 'Penjelajah',
             legacy: read('office-profile', {}),
           });
-          localStorage.setItem('office-player-token', value.token);
+          localStorage.setItem(
+            OFFLINE_MODE ? 'office-offline-ready' : 'office-player-token',
+            value.token,
+          );
           player = value.player;
         }
         if (alive) {
           setProfile(player);
-          setServerReady(true);
+          setGameReady(true);
         }
         const value = await adventureApi('/catalog');
         if (alive) setCatalog(value.wardrobe);
@@ -166,17 +172,28 @@ export function OfficeAdventure() {
   function updatePosition(x, z) {
     position.current = [x, z];
     if (screen !== 'world' || modal) return;
+    const building =
+      world === 'city'
+        ? CITY_BUILDINGS.find(
+            (item) => Math.hypot(x - item.position[0], z - (item.position[2] + 4.5)) < 3,
+          )
+        : null;
     const next =
       Math.hypot(x + 3, z - 2.5) < 2
         ? 'npc'
-        : z < -2.8 && (Math.abs(x + 6.2) < 2.5 || Math.abs(x) < 2 || Math.abs(x - 6.2) < 2.5)
-          ? 'lesson'
-          : null;
-    if (next === 'lesson') setTopic(x < -3 ? 'word' : x > 3 ? 'powerpoint' : 'excel');
+        : world === 'city'
+          ? building
+            ? 'lesson'
+            : null
+          : z < -2.8 && (Math.abs(x + 6.2) < 2.5 || Math.abs(x) < 2 || Math.abs(x - 6.2) < 2.5)
+            ? 'lesson'
+            : null;
+    if (next === 'lesson')
+      setTopic(building?.topic || (x < -3 ? 'word' : x > 3 ? 'powerpoint' : 'excel'));
     setNearby((current) => (current === next ? current : next));
     BOOKS.forEach(([bx, bz], index) => {
       const id = `${world}:${index}`;
-      if (serverReady && !bookIds.current.includes(id) && Math.hypot(x - bx, z - bz) < 0.8) {
+      if (gameReady && !bookIds.current.includes(id) && Math.hypot(x - bx, z - bz) < 0.8) {
         bookIds.current = [...bookIds.current, id];
         adventureApi('/books', { world, index })
           .then((player) => {
@@ -252,8 +269,16 @@ export function OfficeAdventure() {
       setError('Pembacaan soal tidak didukung browser ini.');
       return;
     }
+    const localVoice = speechSynthesis
+      .getVoices()
+      .find((voice) => voice.localService && voice.lang.startsWith('id'));
+    if (!localVoice) {
+      setError('Suara pembaca Bahasa Indonesia offline belum tersedia di perangkat ini.');
+      return;
+    }
     speechSynthesis.cancel();
     const voice = new SpeechSynthesisUtterance(text);
+    voice.voice = localVoice;
     voice.lang = 'id-ID';
     speechSynthesis.speak(voice);
   }
@@ -294,7 +319,9 @@ export function OfficeAdventure() {
       <div className={`office-world ${screen === 'home' ? 'office-world--home' : ''}`}>
         <World
           world={world}
+          cameraView={cameraView}
           quality={quality}
+          trafficPaused={Boolean(modal) || Boolean(gameMode)}
           appearance={profile}
           exploration
           active={false}
@@ -317,7 +344,12 @@ export function OfficeAdventure() {
               multi<b>edu</b>
             </a>
             <div className="header-actions">
-              <button className="soft-button" onClick={() => setModal('teacher')}>
+              <button
+                className="soft-button"
+                disabled={OFFLINE_MODE}
+                title="Akun guru memerlukan server lokal"
+                onClick={() => setModal('teacher')}
+              >
                 Ruang Guru
               </button>
               <button
@@ -334,7 +366,7 @@ export function OfficeAdventure() {
           </header>
           <main className="landing-copy">
             <span className="edition">
-              <span /> MICROSOFT OFFICE · JELAJAH & KELAS
+              <span /> MICROSOFT OFFICE · SIAP DIMAINKAN OFFLINE
             </span>
             <h1>
               Dunia baru.
@@ -350,7 +382,7 @@ export function OfficeAdventure() {
             <div className="hero-actions">
               <button
                 className="primary-button"
-                disabled={!serverReady}
+                disabled={!gameReady}
                 onClick={() => setModal('modes')}
               >
                 <Play fill="currentColor" size={19} /> Mainkan Sekarang <ArrowRight size={19} />
@@ -362,6 +394,8 @@ export function OfficeAdventure() {
             <button
               className="soft-button"
               style={{ pointerEvents: 'auto', marginTop: 18 }}
+              disabled={OFFLINE_MODE}
+              title="Kelas lintas perangkat memerlukan server lokal"
               onClick={() => setModal('class')}
             >
               Punya kode guru? Gabung kelas
@@ -380,7 +414,7 @@ export function OfficeAdventure() {
           </main>
           <footer className="landing-footer">
             <span>LEARN. PLAY. LEVEL UP.</span>
-            <span>Tanpa akun · Progres eksplorasi di browser ini</span>
+            <span>Offline · Materi dan soal tersedia di dalam game</span>
           </footer>
         </>
       ) : (
@@ -432,20 +466,47 @@ export function OfficeAdventure() {
             ))}
           </nav>
           {showMap && (
-            <div className="mini-map" aria-label="Peta mini">
+            <div
+              className={`mini-map ${world === 'city' ? 'mini-map--city' : ''}`}
+              aria-label="Peta mini"
+              data-x={mapPosition[0]}
+              data-z={mapPosition[1]}
+            >
               <span>U · GEDUNG WORD ↖</span>
               <i
                 style={{
-                  left: `${(mapPosition[0] + 10) * 5}%`,
-                  top: `${(mapPosition[1] + 8) * 6}%`,
+                  left: `${world === 'city' ? cityToMap(...mapPosition).left : (mapPosition[0] + 10) * 5}%`,
+                  top: `${world === 'city' ? cityToMap(...mapPosition).top : (mapPosition[1] + 8) * 6}%`,
                 }}
               >
                 ▲
               </i>
-              <b>W</b>
+              {world === 'city' ? (
+                CITY_BUILDINGS.map((item) => (
+                  <b
+                    key={item.topic}
+                    style={{
+                      left: `${cityToMap(item.position[0], item.position[2]).left}%`,
+                      top: `${cityToMap(item.position[0], item.position[2]).top}%`,
+                    }}
+                  >
+                    {item.topic === 'word' ? 'W' : item.topic === 'excel' ? 'X' : 'P'}
+                  </b>
+                ))
+              ) : (
+                <b>W</b>
+              )}
             </div>
           )}
           <div className="world-actions">
+            {world === 'city' && (
+              <button
+                className="soft-button"
+                onClick={() => setCameraView(cameraView === 'overview' ? 'follow' : 'overview')}
+              >
+                {cameraView === 'overview' ? 'Kamera dekat' : 'Lihat seluruh kota'}
+              </button>
+            )}
             <button
               className="soft-button"
               onClick={() => {
@@ -601,7 +662,12 @@ export function OfficeAdventure() {
                   </button>
                 ))}
               </div>
-              <button className="soft-button" onClick={() => setModal('class')}>
+              <button
+                className="soft-button"
+                disabled={OFFLINE_MODE}
+                title="Kelas lintas perangkat memerlukan server lokal"
+                onClick={() => setModal('class')}
+              >
                 Ajak teman / Gabung kelas
               </button>
             </>
@@ -879,8 +945,8 @@ export function OfficeAdventure() {
               <Trophy className="result-trophy" size={52} />
               <h2>Petualangan selesai!</h2>
               <p>
-                {session.correctCount}/{session.total} benar · {session.score} XP. Hasil kuis
-                tersimpan pada server ini. XP profil tersimpan di browser.
+                {session.correctCount}/{session.total} benar · {session.score} XP. Hasil kuis, XP,
+                dan progres tersimpan di perangkat ini.
               </p>
               <button className="primary-button" onClick={() => setModal(null)}>
                 Kembali menjelajah
@@ -1022,10 +1088,20 @@ export function OfficeAdventure() {
                 Bacakan soal otomatis: {autoRead ? 'Nyala' : 'Mati'}
               </button>
               <div className="dialog-actions">
-                <button className="soft-button" onClick={() => setModal('teacher')}>
+                <button
+                  className="soft-button"
+                  disabled={OFFLINE_MODE}
+                  title="Akun guru memerlukan server lokal"
+                  onClick={() => setModal('teacher')}
+                >
                   Mode Guru
                 </button>
-                <button className="soft-button" onClick={() => setModal('class')}>
+                <button
+                  className="soft-button"
+                  disabled={OFFLINE_MODE}
+                  title="Kelas lintas perangkat memerlukan server lokal"
+                  onClick={() => setModal('class')}
+                >
                   Main bersama / kode kelas
                 </button>
                 <button
@@ -1044,7 +1120,7 @@ export function OfficeAdventure() {
                   onClick={() => {
                     if (
                       confirm(
-                        'Hapus XP, koin, buku, kepemilikan item dan progres profil ini di server? Data kelas serta pengguna lain tidak dihapus.',
+                        'Hapus XP, koin, buku, kepemilikan item dan progres profil offline ini di perangkat? Data kelas serta pengguna lain tidak dihapus.',
                       )
                     )
                       adventureApi('/reset', { confirm: true })
@@ -1202,7 +1278,7 @@ export function OfficeAdventure() {
               </ol>
               <button
                 className="primary-button"
-                disabled={!serverReady}
+                disabled={!gameReady}
                 onClick={() => setModal('modes')}
               >
                 Mulai petualangan

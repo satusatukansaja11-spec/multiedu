@@ -50,14 +50,14 @@ test('mobile exploration and collection are usable without overflow', async ({ p
   // Use short movement pulses and let the minimap settle; a held key can
   // overshoot the pickup on slow software-rendered Chromium machines.
   for (let i = 0; i < 15; i++) {
-    if (parseFloat(await page.locator('.mini-map i').evaluate((el) => el.style.left)) < 43) break;
+    if (Number(await page.locator('.mini-map').getAttribute('data-x')) < -1.6) break;
     await page.keyboard.down('a');
     await page.waitForTimeout(80);
     await page.keyboard.up('a');
     await page.waitForTimeout(200);
   }
   for (let i = 0; i < 15; i++) {
-    if (parseFloat(await page.locator('.mini-map i').evaluate((el) => el.style.top)) > 70) break;
+    if (Number(await page.locator('.mini-map').getAttribute('data-z')) > 3.7) break;
     await page.keyboard.down('s');
     await page.waitForTimeout(80);
     await page.keyboard.up('s');

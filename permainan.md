@@ -388,3 +388,7 @@ Aturan yang sebelumnya belum ditetapkan kini memakai keputusan awal berikut (buk
 - Penyimpanan versi ini adalah JSON server satu proses, dengan transaksi serial dan rename atomik. PostgreSQL, Socket.IO dan dunia fisika multiplayer bersama tetap target lanjutan. Jangan menyatakan versi ini siap produksi sekolah atau teruji untuk 70 pemain.
 
 README menjelaskan perilaku yang tersedia dan batas operasional. Checklist bagian 18 tetap merupakan kriteria peninjauan; status lulus ditentukan oleh pengujian, bukan keberadaan dokumen atau tombol.
+
+## 20. Tata kota terbaru
+
+Kota Ilmu diperluas menjadi area 88 × 88 unit dengan jaringan jalan, sembilan blok, plaza pusat, dan permukiman. Gedung Word, Excel, dan PowerPoint ditempatkan pada baris utara. Mobil/bus bergerak pada lintasan melingkar dalam dan luar; menu menjeda lalu lintas. Gapura pusat mempunyai tulisan depan SELAMAT DATANG dan tulisan belakang KOTA ILMU. Kamera memiliki mode pandangan kota penuh dan mode dekat yang mengikuti pemain. Semua objek, tulisan, dan animasi tetap dibuat lokal untuk penggunaan offline.

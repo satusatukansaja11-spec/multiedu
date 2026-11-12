@@ -13,7 +13,9 @@
     "test": "vitest run",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:offline": "npm run dev -w apps/web",
+    "preview": "npm run preview -w apps/web"
   },
   "devDependencies": {
     "concurrently": "^9.0.0",

@@ -1,4 +1,7 @@
+import { offlineApi } from './offline-store.js';
+export const OFFLINE_MODE = true;
 export async function adventureApi(path, body, teacher = false) {
+  if (OFFLINE_MODE) return offlineApi(path, body);
   const response = await fetch(`/api/adventure${path}`, {
     method: body ? 'POST' : 'GET',
     headers: {

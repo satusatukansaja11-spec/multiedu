@@ -245,14 +245,27 @@ export function GameMode({
   }, [lane, run?.id, run?.index, run?.deadline, run?.completed, feedback, paused]);
   function speakQuestion() {
     if (!window.speechSynthesis) return;
+    const localVoice = window.speechSynthesis
+      .getVoices()
+      .find((voice) => voice.localService && voice.lang.startsWith('id'));
+    if (!localVoice) {
+      setError('Suara pembaca offline Bahasa Indonesia belum tersedia.');
+      return;
+    }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(run?.question?.prompt || '');
     utterance.lang = 'id-ID';
+    utterance.voice = localVoice;
     window.speechSynthesis.speak(utterance);
   }
   useEffect(() => {
     if (autoRead && run?.question && window.speechSynthesis) {
+      const localVoice = window.speechSynthesis
+        .getVoices()
+        .find((voice) => voice.localService && voice.lang.startsWith('id'));
+      if (!localVoice) return;
       const utterance = new SpeechSynthesisUtterance(run.question.prompt);
+      utterance.voice = localVoice;
       utterance.lang = 'id-ID';
       window.speechSynthesis.speak(utterance);
     }

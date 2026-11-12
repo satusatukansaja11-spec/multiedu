@@ -2,7 +2,36 @@
 
 Game edukasi JavaScript dengan React, Three.js/React Three Fiber, dan Express. Materi: **Microsoft Word, Excel, dan PowerPoint**. Dunia dan karakter dibuat secara prosedural; tidak memakai aset Roblox atau situs referensi.
 
-## Menjalankan
+## Mode offline — versi aktif
+
+Tombol **Mainkan Sekarang** kini memakai mesin permainan lokal tanpa menunggu Express/API. Semua materi, 18 soal (6 Word, 6 Excel, 6 PowerPoint), pembahasan, kostum, dan aturan penilaian dibundel di dalam aplikasi. Tidak ada pengambilan soal atau materi dari internet.
+
+Untuk bermain tanpa backend:
+
+```bash
+npm run dev:offline
+```
+
+Buka port **5173**. Untuk hasil build mandiri:
+
+```bash
+npm run build
+npm run preview
+```
+
+Buka port **4173**. Folder `apps/web/dist` dapat dihosting sebagai situs statis, termasuk pada subfolder. Service worker menyimpan aplikasi setelah pemuatan pertama selesai pada localhost/HTTPS; setelah cache siap, halaman dapat dimuat ulang dan dimainkan ketika jaringan diputus. Pemuatan pertama dari situs yang belum pernah dikunjungi tetap memerlukan akses ke situs itu. Bila semua berkas dijalankan dari localhost, internet tidak diperlukan untuk bermain.
+
+Instalasi dependensi awal (`npm ci`) memerlukan paket yang sudah tersedia di cache atau akses registry. Ini terpisah dari kebutuhan internet saat bermain. Jangan membuka `index.html` langsung melalui `file://`; gunakan server statis lokal agar modul JavaScript dan cache bekerja.
+
+Progres offline tersimpan dalam localStorage `multiedu-offline-v1`, terpisah dari data server versi sebelumnya. Jangan menghapus penyimpanan browser jika ingin mempertahankan hasil. Data lokal dan kunci jawaban dapat diperiksa/diubah di perangkat sendiri; mode ini untuk latihan, bukan ujian berpengamanan server.
+
+Fitur akun guru, kode kelas, proyektor lintas perangkat, dan undangan teman **dinonaktifkan pada mode offline**. Materi/soal untuk ketiga aplikasi Office tetap tersedia tanpa akun. Fitur eksplorasi, NPC, kuis, lima mode tambahan, koin, misi, kostum, SFX dan light/dark menggunakan penyimpanan lokal.
+
+Sumber materi: `apps/web/src/data/office-content.js`. Mesin lokal: `apps/web/src/offline-store.js`. Cache produksi dibuat oleh `apps/web/offline-plugin.js`.
+
+Bagian berikut mendokumentasikan arsitektur server sebelumnya; autentikasi dan penyimpanan server tersebut **bukan syarat permainan offline aktif**.
+
+## Menjalankan arsitektur server (opsional)
 
 Prasyarat: Node.js 24 LTS, npm, browser WebGL.
 
@@ -103,3 +132,11 @@ Playwright memakai `/usr/bin/chromium` pada cloud ini. Atur `CHROMIUM_PATH` pada
 - [PRD.md](./PRD.md), [desain.md](./desain.md), [rules.md](./rules.md): kebutuhan produk, visual, dan aturan kode.
 
 Microsoft dan Roblox merupakan merek pemiliknya masing-masing. Multiedu tidak berafiliasi dengan layanan tersebut.
+
+Pembacaan soal pada mode offline hanya menggunakan suara Bahasa Indonesia yang ditandai lokal oleh browser/OS. Jika suara tersebut belum terpasang, game memberi pemberitahuan dan tidak memakai layanan suara online. SFX dibuat dengan Web Audio tanpa berkas dari internet.
+
+## Kota Ilmu yang diperluas
+
+Kota Ilmu memakai area 88 × 88 unit: sembilan blok, tiga gedung Office di sisi utara, permukiman, jalan dua arah dengan marka dan zebra cross, trotoar, lampu, pepohonan, serta plaza dengan air mancur dan bangku. Dua belas kendaraan (mobil dan bus) mengitari lintasan dalam dan luar dengan tikungan membulat. Kendaraan dijeda ketika menu/jeda terbuka.
+
+Gapura pusat menampilkan **SELAMAT DATANG** pada sisi depan dan **KOTA ILMU** pada sisi belakang. Tulisan dibuat sebagai tekstur lokal, tanpa unduhan font/aset. Tombol **Kamera dekat / Lihat seluruh kota** mengganti sudut pandang; kamera dekat mengikuti gerak pemain. Peta mini dan interaksi gedung memakai koordinat kota yang diperluas. Kendaraan adalah lalu lintas visual, belum simulasi tabrakan/rambu penuh.

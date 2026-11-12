@@ -262,3 +262,29 @@ test('enter, exit and resume an arena without DOM errors', async ({ page }) => {
   await expect(page.locator('.mode-hud')).toContainText('SOAL 2/6');
   expect(errors).toEqual([]);
 });
+
+test('expanded city supports near/overview camera and movement beyond old bounds', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: /Mainkan Sekarang/ }).click();
+  await page.getByRole('button', { name: /Jelajah Dunia/ }).click();
+  await page.getByRole('button', { name: /Kota Ilmu/ }).click();
+  await page.getByRole('button', { name: /Masuk Kota/ }).click();
+  await expect(page.getByRole('img', { name: /Kota Ilmu luas/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Kamera dekat', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Lihat seluruh kota', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Peta mini', exact: true }).click();
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('d');
+  await expect
+    .poll(async () => Number(await page.locator('.mini-map').getAttribute('data-x')), {
+      timeout: 20000,
+      intervals: [100],
+    })
+    .toBeGreaterThan(10);
+  await page.keyboard.up('d');
+  await page.keyboard.up('Shift');
+  await page.getByRole('button', { name: 'Lihat seluruh kota', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Kamera dekat', exact: true })).toBeVisible();
+});

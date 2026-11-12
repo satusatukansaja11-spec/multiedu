@@ -6,3 +6,11 @@ createRoot(document.getElementById('root')).render(
     <OfficeAdventure />
   </React.StrictMode>,
 );
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
+      console.warn('Cache offline belum tersedia:', error.message);
+    });
+  });
+}

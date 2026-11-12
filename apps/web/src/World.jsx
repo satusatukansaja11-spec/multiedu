@@ -1,9 +1,10 @@
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float, Html, OrbitControls, ContactShadows } from '@react-three/drei';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { WORLDS } from './adventure-api.js';
 import { WorldScenery } from './WorldScenery.jsx';
+import { CityScene } from './CityScene.jsx';
 const COLORS = ['#f16c68', '#46a9f5', '#35cc8a', '#ffd344'];
 function Block({ position, scale, color, ...props }) {
   return (
@@ -25,8 +26,23 @@ function Avatar({
   onPosition,
   appearance = {},
   world = 'city',
+  cameraView = 'overview',
 }) {
   const group = useRef();
+  const camera = useThree((state) => state.camera),
+    controls = useThree((state) => state.controls);
+  useEffect(() => {
+    if (!player || world !== 'city' || !group.current) return;
+    const { x, z } = group.current.position;
+    if (cameraView === 'follow') {
+      camera.position.set(x + 12, 14, z + 16);
+      controls?.target.set(x, 0, z);
+    } else {
+      camera.position.set(48, 58, 65);
+      controls?.target.set(0, 0, -1);
+    }
+    controls?.update();
+  }, [cameraView, world, player, camera, controls]);
   const initialPosition = useRef(position);
   const keys = useRef({});
   useEffect(() => {
@@ -65,6 +81,8 @@ function Avatar({
       keys.current = {};
       return;
     }
+    const previousX = group.current.position.x,
+      previousZ = group.current.position.z;
     const input = keys.current;
     const step = Math.min(delta, 0.05) * (input.shift ? 7 : 4);
     if (input[' ']) {
@@ -81,8 +99,26 @@ function Avatar({
     const z =
       Number(input.s || input.arrowdown || movement === 'down') -
       Number(input.w || input.arrowup || movement === 'up');
-    group.current.position.x = THREE.MathUtils.clamp(group.current.position.x + x * step, -7, 7);
-    group.current.position.z = THREE.MathUtils.clamp(group.current.position.z + z * step, -4.8, 6);
+    group.current.position.x = THREE.MathUtils.clamp(
+      group.current.position.x + x * step,
+      world === 'city' ? -40 : -7,
+      world === 'city' ? 40 : 7,
+    );
+    group.current.position.z = THREE.MathUtils.clamp(
+      group.current.position.z + z * step,
+      world === 'city' ? -40 : -4.8,
+      world === 'city' ? 40 : 6,
+    );
+    if (world === 'city' && cameraView === 'follow') {
+      const dx = group.current.position.x - previousX,
+        dz = group.current.position.z - previousZ;
+      state.camera.position.x += dx;
+      state.camera.position.z += dz;
+      if (state.controls) {
+        state.controls.target.x += dx;
+        state.controls.target.z += dz;
+      }
+    }
     group.current.rotation.y = x || z ? Math.atan2(x, z) : group.current.rotation.y;
     reaction.current = Math.max(0, reaction.current - delta);
     const bounce = Math.sin(reaction.current * Math.PI) * (feedback?.isCorrect ? 2 : -1.5);
@@ -187,11 +223,20 @@ function Scene({
   world = 'city',
   appearance = {},
   quality = 'high',
+  trafficPaused = false,
+  cameraView = 'overview',
 }) {
   return (
     <>
       <color attach="background" args={[WORLDS.find((w) => w.id === world)?.sky || '#b9dfe6']} />
-      <fog attach="fog" args={[WORLDS.find((w) => w.id === world)?.sky || '#b9dfe6', 25, 65]} />
+      <fog
+        attach="fog"
+        args={[
+          WORLDS.find((w) => w.id === world)?.sky || '#b9dfe6',
+          world === 'city' ? 90 : 25,
+          world === 'city' ? 200 : 65,
+        ]}
+      />
       <ambientLight intensity={1.5} />
       <directionalLight
         position={[-8, 16, 8]}
@@ -199,64 +244,71 @@ function Scene({
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
-      <group position={[0, -0.5, 0]}>
-        <Block
-          position={[0, -0.4, 0]}
-          scale={world === 'ocean' ? [60, 1, 60] : [20, 1, 17]}
-          color={WORLDS.find((w) => w.id === world)?.ground || '#b9df91'}
-        />
-        <mesh position={[0, -2, 0]}>
-          <cylinderGeometry args={[11.5, 5, 4, 7]} />
-          <meshStandardMaterial color="#799a79" />
-        </mesh>
-      </group>
-      <Block position={[0, -0.02, 3.8]} scale={[3.4, 0.08, 6.8]} color="#73849a" />
-      {[1.2, 2.7, 4.2, 5.7].map((z) => (
-        <Block key={z} position={[0, 0.03, z]} scale={[0.13, 0.02, 0.7]} color="#fff9e9" />
-      ))}
-      {!exploration &&
-        COLORS.map((color, index) => (
-          <group key={color} position={[index % 2 ? 2.2 : -2.2, 0, index < 2 ? -3.35 : -1.1]}>
-            <Block position={[0, 0.02, 0]} scale={[4.25, 0.12, 2.1]} color={color} />
-            <Html position={[0, 0.13, 0]} rotation={[-Math.PI / 2, 0, 0]} transform>
-              <span className="tile-letter">{'ABCD'[index]}</span>
-            </Html>
+      {world === 'city' ? (
+        <CityScene paused={trafficPaused} />
+      ) : (
+        <>
+          <group position={[0, -0.5, 0]}>
+            <Block
+              position={[0, -0.4, 0]}
+              scale={world === 'ocean' ? [60, 1, 60] : [20, 1, 17]}
+              color={WORLDS.find((w) => w.id === world)?.ground || '#b9df91'}
+            />
+            <mesh position={[0, -2, 0]}>
+              <cylinderGeometry args={[11.5, 5, 4, 7]} />
+              <meshStandardMaterial color="#799a79" />
+            </mesh>
           </group>
-        ))}
-      <Building position={[-6.2, 0, -4.8]} color="#437dc7" label="WORD" letter="W" />
-      <Building position={[0, 0, -6.4]} color="#399f78" label="EXCEL" letter="X" />
-      <Building position={[6.2, 0, -4.8]} color="#d97d5d" label="POWERPOINT" letter="P" />
-      {['city', 'forest', 'islands', 'future'].includes(world) &&
-        [
-          [-8, 0, 2],
-          [-7, 0, 5],
-          [7, 0, 4],
-          [8, 0, 0],
-          [-4, 0, 6],
-          [8, 0, -6],
-        ].map((position, index) => (
-          <Tree key={index} position={position} scale={index % 2 ? 0.8 : 1} />
-        ))}
-      {[-15, -6, 9, 18].map((x, index) => (
-        <mesh key={x} position={[x, -1, -20 - index * 3]}>
-          <coneGeometry args={[7, 15 + index * 2, 5]} />
-          <meshStandardMaterial color={index % 2 ? '#8dafaa' : '#9dbeb3'} />
-        </mesh>
-      ))}
-      {!['ocean', 'space', 'body'].includes(world) &&
-        [
-          [-9, 8, -7],
-          [8, 7, -10],
-          [1, 10, -16],
-        ].map((position, index) => (
-          <Float key={index} speed={0.6} floatIntensity={0.4}>
-            <group position={position}>
-              <Block scale={[3, 0.5, 1.2]} color="#fffdf2" />
-              <Block position={[0.3, 0.3, 0]} scale={[1.5, 0.5, 1]} color="#fffdf2" />
-            </group>
-          </Float>
-        ))}
-      <WorldScenery world={world} />
+          <Block position={[0, -0.02, 3.8]} scale={[3.4, 0.08, 6.8]} color="#73849a" />
+          {[1.2, 2.7, 4.2, 5.7].map((z) => (
+            <Block key={z} position={[0, 0.03, z]} scale={[0.13, 0.02, 0.7]} color="#fff9e9" />
+          ))}
+          {!exploration &&
+            COLORS.map((color, index) => (
+              <group key={color} position={[index % 2 ? 2.2 : -2.2, 0, index < 2 ? -3.35 : -1.1]}>
+                <Block position={[0, 0.02, 0]} scale={[4.25, 0.12, 2.1]} color={color} />
+                <Html position={[0, 0.13, 0]} rotation={[-Math.PI / 2, 0, 0]} transform>
+                  <span className="tile-letter">{'ABCD'[index]}</span>
+                </Html>
+              </group>
+            ))}
+          <Building position={[-6.2, 0, -4.8]} color="#437dc7" label="WORD" letter="W" />
+          <Building position={[0, 0, -6.4]} color="#399f78" label="EXCEL" letter="X" />
+          <Building position={[6.2, 0, -4.8]} color="#d97d5d" label="POWERPOINT" letter="P" />
+          {['city', 'forest', 'islands', 'future'].includes(world) &&
+            [
+              [-8, 0, 2],
+              [-7, 0, 5],
+              [7, 0, 4],
+              [8, 0, 0],
+              [-4, 0, 6],
+              [8, 0, -6],
+            ].map((position, index) => (
+              <Tree key={index} position={position} scale={index % 2 ? 0.8 : 1} />
+            ))}
+          {[-15, -6, 9, 18].map((x, index) => (
+            <mesh key={x} position={[x, -1, -20 - index * 3]}>
+              <coneGeometry args={[7, 15 + index * 2, 5]} />
+              <meshStandardMaterial color={index % 2 ? '#8dafaa' : '#9dbeb3'} />
+            </mesh>
+          ))}
+          {!['ocean', 'space', 'body'].includes(world) &&
+            [
+              [-9, 8, -7],
+              [8, 7, -10],
+              [1, 10, -16],
+            ].map((position, index) => (
+              <Float key={index} speed={0.6} floatIntensity={0.4}>
+                <group position={position}>
+                  <Block scale={[3, 0.5, 1.2]} color="#fffdf2" />
+                  <Block position={[0.3, 0.3, 0]} scale={[1.5, 0.5, 1]} color="#fffdf2" />
+                </group>
+              </Float>
+            ))}
+          <WorldScenery world={world} />
+        </>
+      )}
+
       <Avatar
         key={active ? topic : 'lobby'}
         position={[0, 0, 3]}
@@ -266,6 +318,7 @@ function Scene({
         color={color}
         world={world}
         appearance={appearance}
+        cameraView={cameraView}
         paused={paused}
         onPosition={onPosition}
         movement={movement}
@@ -302,13 +355,19 @@ function Scene({
         <meshBasicMaterial color="#4de0f1" />
       </mesh>
       {quality === 'high' && (
-        <ContactShadows position={[0, 0.01, 0]} opacity={0.25} scale={25} blur={2} far={5} />
+        <ContactShadows
+          position={[0, 0.01, 0]}
+          opacity={0.25}
+          scale={world === 'city' ? 90 : 25}
+          blur={2}
+          far={5}
+        />
       )}
       <OrbitControls
         makeDefault
-        enablePan={false}
+        enablePan={world === 'city'}
         minDistance={12}
-        maxDistance={25}
+        maxDistance={world === 'city' ? 140 : 25}
         maxPolarAngle={Math.PI / 2.6}
         minPolarAngle={Math.PI / 6}
         target={[0, 0, -1]}
@@ -325,12 +384,27 @@ export function World(props) {
       </div>
     );
   return (
-    <div className="world-canvas">
+    <div
+      className="world-canvas"
+      role="img"
+      aria-label={
+        props.world === 'city'
+          ? 'Kota Ilmu luas dengan jalan raya, kendaraan bergerak, dan gapura Selamat Datang dengan Kota Ilmu di sisi belakang'
+          : 'Dunia belajar tiga dimensi'
+      }
+    >
       <Canvas
-        frameloop={props.paused ? 'demand' : 'always'}
+        frameloop={
+          (props.world === 'city' && !props.trafficPaused) || !props.paused ? 'always' : 'demand'
+        }
         shadows={props.quality !== 'low'}
-        dpr={[1, 1.5]}
-        camera={{ position: [12, 14, 19], fov: 42 }}
+        dpr={props.quality === 'low' ? 1 : [1, 1.5]}
+        camera={{
+          position:
+            props.world === 'city' && props.cameraView !== 'follow' ? [48, 58, 65] : [12, 14, 19],
+          fov: 42,
+          far: 300,
+        }}
         onCreated={({ gl }) => {
           gl.domElement.addEventListener('webglcontextlost', () => setFailed(true), { once: true });
         }}
